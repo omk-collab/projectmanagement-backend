@@ -1,0 +1,6 @@
+MONGO_URI=mongodb+srv://omk:omk123@cluster0.nvu4ejm.mongodb.net/projmanage
+
+
+PORT = 8000
+CORS_ORIGIN=*
+# ("https://example.com,https://another.com")
