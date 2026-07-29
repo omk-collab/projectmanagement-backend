@@ -1,4 +1,5 @@
 import {body}from "express-validator"
+import {AvailableUserRole} from "../utils/constants.js"
 
 const userRegisterValidator = () => {
     return [
@@ -66,9 +67,86 @@ const userResetForgotPasswordValidator = () =>{
     return [body("newPassword").notEmpty().withMessage("Password is required")];
 }
 
+const createProjectValidator = () => {
+    return[
+        body("name")
+        .notEmpty()
+        .withMessage("Name is required"),
+        body("description").optional(),
+    ];
+};
+
+const addMembertoProjectValidator = () => {
+    return [
+        body("email")
+        .trim()
+        .notEmpty()
+        .withMessage("Email is required")
+        .isEmail()
+        .withMessage("Email is invalid"),
+        body("role")
+        .notEmpty()
+        .withMessage("Role is required")
+        .isIn(AvailableUserRole)
+        .withMessage("Role is invalid")
+    ];
+};
+
+const createTaskValidator = () => {
+  return [
+    body("title").trim().notEmpty().withMessage("Title is required"),
+
+    body("description").optional(),
+
+    body("status")
+      .optional()
+      .isIn(["todo", "in_progress", "done"])
+      .withMessage("Invalid status"),
+
+    body("assignedTo").optional(),
+  ];
+};
+
+const updateTaskValidator = () => {
+  return [
+    body("title").optional().trim(),
+
+    body("description").optional(),
+
+    body("status")
+      .optional()
+      .isIn(["todo", "in_progress", "done"])
+      .withMessage("Invalid status"),
+
+    body("assignedTo").optional(),
+  ];
+};
+
+const createSubTaskValidator = () => {
+  return [body("title").trim().notEmpty().withMessage("Title is required")];
+};
+
+const updateSubTaskValidator = () => {
+  return [
+    body("title").optional().trim(),
+
+    body("isCompleted")
+      .optional()
+      .isBoolean()
+      .withMessage("isCompleted must be true or false"),
+  ];
+};
+
 export {
   userRegisterValidator,
   userLoginValidator,
   userChangeCurrentPasswordValidator,
   userForgotPasswordValidator,
+  userResetForgotPasswordValidator,
+  createProjectValidator,
+  addMembertoProjectValidator,
+  createTaskValidator,
+  updateTaskValidator,
+  createSubTaskValidator,
+  updateSubTaskValidator,
 };
