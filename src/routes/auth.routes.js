@@ -10,7 +10,12 @@ import {
   getCurrentUser,
   changeCurrentPassword,
   resendEmailverification,
+  updateAvatar,
 } from "../controllers/auth.controllers.js";
+
+import { updateAccountDetails } from "../controllers/auth.controllers.js";
+
+import { upload } from "../middlewares/multer.middleware.js";
 
 import { validate } from "../middlewares/validator.middleware.js";
 
@@ -59,5 +64,11 @@ router
 router
   .route("/resend-email-verification")
   .post(verifyJWT, resendEmailverification);
+
+router.patch("/update-account", verifyJWT, updateAccountDetails);
+
+router
+  .route("/update-avatar")
+  .post(verifyJWT, upload.single("avatar"), updateAvatar);
 
 export default router;

@@ -6,6 +6,7 @@ import { hash } from "bcrypt";
 import { emailVerificationMailgenContent, sendEmail } from "../utils/mail.js";
 import jwt from "jsonwebtoken"
 import crypto from "crypto";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -92,52 +93,99 @@ const registerUser = asyncHandler(async(req,res)=>{
    
 });
 
-const login = asyncHandler(async (req,res)=>{
+const login = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
 
- const {email,password}= req.body
+  // 1. Email check
+  if (!email) {
+    throw new ApiError(400, "Email is required");
+  }
 
- if( !email){
-  throw new ApiError(400," email is required")
- }
+  // 2. Find user
+  const user = await User.findOne({ email });
 
- const user = await User.findOne({email});
- 
- if(!user){
-    throw new ApiError(400, " email does not exists");
- }
+  if (!user) {
+    throw new ApiError(400, "Email does not exist");
+  }
 
- const isPasswordValid = await user.isPasswordCorrect(password);
+  // 3. Check password
+  const isPasswordValid = await user.isPasswordCorrect(password);
 
- if(!isPasswordValid){
-      throw new ApiError(400, "  Invalid credentials");
+  if (!isPasswordValid) {
+    throw new ApiError(400, "Invalid credentials");
+  }
 
- }
+  // ⭐ 4. CHECK EMAIL VERIFICATION
+  if (!user.isEmailVerified) {
+    throw new ApiError(403, "Please verify your email before logging in");
+  }
 
- const {accessToken, refreshToken}= await generateAccessAndRefreshTokens(user._id)
+  // 5. Generate tokens
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+    user._id,
+  );
 
-     const loggedInUser = await User.findById(user._id).select(
-       "-password -refreshToken -emailVerificationToken -emailVerificationExpiry",
-     );
+  // 6. Get user without sensitive information
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken -emailVerificationToken -emailVerificationExpiry",
+  );
 
-     const options = {
-       httpOnly: true,
-       secure: true,
-       sameSite: "none",
-     };
-     return res
-     .status(200)
-     .cookie("accessToken",accessToken,options)
-     .cookie("refreshToken",refreshToken,options)
-     .json(
+  // 7. Cookie options
+  const options = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+  };
+
+  // 8. Send response
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
       new ApiResponse(
-        200,{
+        200,
+        {
           user: loggedInUser,
           accessToken,
-          refreshToken
+          refreshToken,
         },
-        "User logged in successfully"
-      )
-     )
+        "User logged in successfully",
+      ),
+    );
+});
+
+const updateAvatar = asyncHandler(async (req, res) => {
+  const avatarLocalPath = req.file?.path;
+
+  if (!avatarLocalPath) {
+    throw new ApiError(400, "Avatar file is required");
+  }
+
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+  if (!avatar) {
+    throw new ApiError(500, "Failed to upload avatar");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        "avatar.url": avatar.url,
+        "avatar.localPath": avatar.public_id,
+      },
+    },
+    { new: true },
+  ).select("-password -refreshToken");
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Avatar updated successfully"));
 });
 
 const logoutUser = asyncHandler(async (req,res)=>{
@@ -200,17 +248,7 @@ const verifyEmail = asyncHandler (async (req, res) =>{
     user.isEmailVerified = true;
     await user.save({validateBeforeSave: false});
 
-    return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        {
-          isEmailVerified: true,
-        },
-        "Email is verified",
-      ),
-    );
+   return res.redirect(`${process.env.CORS_ORIGIN}/email-verified`);
 });
 
 const resendEmailverification= asyncHandler(async (req, res) => {
@@ -252,6 +290,39 @@ const { unHashedToken, hashToken, tokenExpiry } = user.generateTemporaryToken();
   )
 });
 
+const updateAccountDetails = asyncHandler(async (req, res) => {
+  const { fullName, username } = req.body;
+
+  if (!fullName && !username) {
+    throw new ApiError(400, "At least one field is required");
+  }
+
+  const user = await User.findById(req.user?._id);
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (fullName) {
+    user.fullName = fullName;
+  }
+
+  if (username) {
+    user.username = username.toLowerCase();
+  }
+
+  await user.save({ validateBeforeSave: true });
+
+  const updatedUser = await User.findById(user._id).select(
+    "-password -refreshToken -emailVerificationToken -emailVerificationExpiry -forgotPasswordToken -forgotPasswordExpiry",
+  );
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, updatedUser, "Account details updated successfully"),
+    );
+});
 const refreshAccessToken = asyncHandler (async (req, res) =>{
   const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
 
@@ -399,4 +470,6 @@ export {
   forgotPasswordRequest,
   changeCurrentPassword,
   resetForgotPassword,
+  updateAccountDetails,
+  updateAvatar,
 };

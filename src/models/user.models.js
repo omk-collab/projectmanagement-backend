@@ -7,64 +7,68 @@ import jwt from "jsonwebtoken"
 import crypto from "crypto"
 
 const userSchema = new Schema(
-    {
-        avatar:{
-            type:{
-                url: String,
-                localPath: String,
-            },
-            default:{
-                url:`https://placehold.co/200x200`,
-                localPath:"",
-            }
-            
-        },
-        username:{
-            type:String,
-            required: true,
-            unique: true,
-            lowercase: true,
-            trim: true,
-            index:true
-        },
-        email:{
-            type: String,
-            required: true,
-            unique:true,
-            lowercase:true,
-            trim:true
-        },
-        fullName:{
-            type: String,
-            trim: true
-        },
-        password:{
-            type:String,
-            required:[true,"Password is required"]
-        },
-        isEmailVerified:{
-            type:Boolean,
-            default: false
-        },
-        refreshToken:{
-            type:String
-        },
-        forgotPasswordToken:{
-            type:String
-        },
-        forgotPasswordExpiry:{
-            type:Date
-        },
-        emailVerificationToken:{
-            type:String
-        },
-        emailVerificationExpiry:{
-            type:Date
-        }
-
-    },{
-        timestamps:true,
+  {
+    avatar: {
+      type: {
+        url: String,
+        localPath: String,
+      },
+      default: {
+        url: `https://placehold.co/200x200`,
+        localPath: "",
+      },
     },
+    username: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true,
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    fullName: {
+      type: String,
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: [true, "Password is required"],
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    refreshToken: {
+      type: String,
+    },
+    forgotPasswordToken: {
+      type: String,
+    },
+    forgotPasswordExpiry: {
+      type: Date,
+    },
+    emailVerificationToken: {
+      type: String,
+    },
+    emailVerificationExpiry: {
+      type: Date,
+    },
+  },
+  {
+    timestamps: true,
+  },
 );
 
 userSchema.pre("save",async function(next){

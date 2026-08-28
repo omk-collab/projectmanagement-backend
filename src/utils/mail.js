@@ -11,41 +11,33 @@ const sendEmail = async (options) => {
   });
 
   const emailTextual = mailGenerator.generatePlaintext(options.mailgenContent);
-
   const emailHtml = mailGenerator.generate(options.mailgenContent);
 
   const transporter = nodemailer.createTransport({
-    host: process.env.MAILTRAP_SMTP_HOST,
-    port: Number(process.env.MAILTRAP_SMTP_PORT),
+    host: process.env.GMAIL_SMTP_HOST,
+    port: Number(process.env.GMAIL_SMTP_PORT),
+    secure: false, // port 587 ke liye false hona chahiye (TLS automatically use hota hai)
     auth: {
-      user: process.env.MAILTRAP_SMTP_USER,
-      pass: process.env.MAILTRAP_SMTP_PASS,
+      user: process.env.GMAIL_SMTP_USER,
+      pass: process.env.GMAIL_SMTP_PASS,
     },
   });
 
-  // Debugging
-  console.log("HOST:", process.env.MAILTRAP_SMTP_HOST);
-  console.log("PORT:", process.env.MAILTRAP_SMTP_PORT);
-  console.log("USER:", process.env.MAILTRAP_SMTP_USER);
-  console.log("PASS:", process.env.MAILTRAP_SMTP_PASS);
-
   const mail = {
-    from: "mail.taskmanager@example.com",
+    from: `"Project Camp" <${process.env.GMAIL_SMTP_USER}>`,
     to: options.email,
     subject: options.subject,
     text: emailTextual,
     html: emailHtml,
   };
 
- try {
-   const info = await transporter.sendMail(mail);
-
-   console.log("✅ Mail Sent Successfully");
-   console.log(info);
- } catch (error) {
-   console.log("❌ MAIL ERROR");
-   console.log(error);
- }
+  try {
+    const info = await transporter.sendMail(mail);
+    console.log("✅ Mail Sent Successfully");
+  } catch (error) {
+    console.log("❌ MAIL ERROR");
+    console.log(error);
+  }
 };
 
 const emailVerificationMailgenContent = (username, verificationUrl) => {
