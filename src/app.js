@@ -6,6 +6,8 @@ import taskRouter from "./routes/task.routes.js";
 
 import noteRouter from "./routes/note.routes.js";
 
+import { globalErrorHandler } from "./middlewares/global-error.middleware.js";
+
 const app = express ();
 
 // basic configuration
@@ -51,5 +53,5 @@ app.use("/api/v1/notes", noteRouter);
 app.get("/",(req, res) => {
     res.send("Welcome to basecampy");
 })
-
+app.use(globalErrorHandler);
 export default app;

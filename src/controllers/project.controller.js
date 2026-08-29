@@ -75,26 +75,31 @@ const getProjectById= asyncHandler(async (req, res) => {
 });
 
 const createProjects = asyncHandler(async (req, res) => {
+  const { name, description } = req.body;
 
-    const {name, description} = req.body
-
-    const project = await Project.create({
-        name,
-        description,
-        createdBy: new mongoose.Types.ObjectId(req.user._id)
-    });
-
-    await ProjectMember.create(
-        {
-            user: new mongoose.Types.ObjectId(req.user._id),
-            project: new mongoose.Types.ObjectId(project._id),
-            role: UserRolesEnum.ADMIN
-        }
+  const existingProject = await Project.findOne({ name });
+  if (existingProject) {
+    throw new ApiError(
+      409,
+      "A project with this name already exists. Please choose a different name.",
     );
-    return res
-        .status(201)
-        .json(new ApiResponse(201, project, "Project created Successfully"));
-  
+  }
+
+  const project = await Project.create({
+    name,
+    description,
+    createdBy: new mongoose.Types.ObjectId(req.user._id),
+  });
+
+  await ProjectMember.create({
+    user: new mongoose.Types.ObjectId(req.user._id),
+    project: new mongoose.Types.ObjectId(project._id),
+    role: UserRolesEnum.ADMIN,
+  });
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, project, "Project created Successfully"));
 });
 
 const updateProject = asyncHandler(async (req, res) => {
