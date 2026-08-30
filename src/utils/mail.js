@@ -1,93 +1,129 @@
 import Mailgen from "mailgen";
 import nodemailer from "nodemailer";
 
+// ===============================
+// Gmail SMTP Transporter
+// ===============================
+
 const transporter = nodemailer.createTransport({
   host: process.env.GMAIL_SMTP_HOST,
   port: Number(process.env.GMAIL_SMTP_PORT),
-  secure: false,
+  secure: false, // Port 587 => false
+
   auth: {
     user: process.env.GMAIL_SMTP_USER,
     pass: process.env.GMAIL_SMTP_PASS,
   },
 });
 
+// ===============================
+// Send Email
+// ===============================
+
 const sendEmail = async (options) => {
   const mailGenerator = new Mailgen({
     theme: "default",
+
     product: {
       name: "Task Manager",
       link: "https://projectmanagement-omk.vercel.app",
     },
   });
 
+  // Generate HTML email
   const emailHtml = mailGenerator.generate(options.mailgenContent);
 
   try {
     const info = await transporter.sendMail({
       from: `"Task Manager" <${process.env.GMAIL_SMTP_USER}>`,
+
       to: options.email,
+
       subject: options.subject,
+
       html: emailHtml,
     });
 
-    console.log("✅ Mail Sent Successfully");
+    console.log("=================================");
+    console.log("✅ MAIL SENT SUCCESSFULLY");
+    console.log("To:", options.email);
     console.log("Message ID:", info.messageId);
+    console.log("=================================");
 
     return info;
   } catch (error) {
+    console.log("=================================");
     console.log("❌ MAIL ERROR");
     console.log(error);
+    console.log("=================================");
 
     throw error;
   }
 };
+
+// ===============================
+// Email Verification Content
+// ===============================
 
 const emailVerificationMailgenContent = (username, verificationUrl) => {
   return {
     body: {
       name: username,
 
-      intro: "Welcome to our App! We're excited to have you on board.",
+      intro: "Welcome to Task Manager! We're excited to have you on board.",
 
       action: {
         instructions:
-          "To verify your email please click on the following button.",
+          "To verify your email address, please click the button below.",
 
         button: {
           color: "#22BC66",
-          text: "Verify your email",
+
+          text: "Verify Your Email",
+
           link: verificationUrl,
         },
       },
 
       outro:
-        "Need help, or have questions? Just reply to this email, we'd love to help.",
+        "If you did not create an account, you can safely ignore this email.",
     },
   };
 };
+
+// ===============================
+// Forgot Password Content
+// ===============================
 
 const forgotPasswordMailgenContent = (username, passwordResetUrl) => {
   return {
     body: {
       name: username,
 
-      intro: "We got a request to reset the password of your account.",
+      intro:
+        "We received a request to reset the password for your Task Manager account.",
 
       action: {
-        instructions: "To reset your password click on the following button.",
+        instructions: "Click the button below to reset your password.",
 
         button: {
           color: "#22BC66",
+
           text: "Reset Password",
+
           link: passwordResetUrl,
         },
       },
 
       outro:
-        "Need help, or have questions? Just reply to this email, we'd love to help.",
+        "If you did not request a password reset, you can safely ignore this email.",
     },
   };
 };
+
+// ===============================
+// Exports
+// ===============================
 
 export {
   sendEmail,
