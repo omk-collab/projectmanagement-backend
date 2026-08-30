@@ -1,41 +1,31 @@
 import Mailgen from "mailgen";
 import nodemailer from "nodemailer";
 
-// ==========================================
-// GMAIL SMTP CONFIGURATION
-// ==========================================
+// ========================================
+// Gmail SMTP Transporter
+// ========================================
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
+
+  // Gmail SMTP port 587 uses STARTTLS
   secure: false,
+
+  // IMPORTANT:
+  // Force IPv4 because Render was trying IPv6
+  // and giving ENETUNREACH error.
+  family: 4,
 
   auth: {
     user: process.env.GMAIL_SMTP_USER,
     pass: process.env.GMAIL_SMTP_PASS,
   },
-
-  tls: {
-    rejectUnauthorized: false,
-  },
 });
 
-// ==========================================
-// VERIFY SMTP CONNECTION
-// ==========================================
-
-transporter.verify((error, success) => {
-  if (error) {
-    console.log("❌ SMTP CONNECTION FAILED");
-    console.log(error);
-  } else {
-    console.log("✅ SMTP SERVER READY");
-  }
-});
-
-// ==========================================
-// SEND EMAIL
-// ==========================================
+// ========================================
+// Send Email
+// ========================================
 
 const sendEmail = async (options) => {
   const mailGenerator = new Mailgen({
@@ -47,6 +37,7 @@ const sendEmail = async (options) => {
     },
   });
 
+  // Generate HTML email
   const emailHtml = mailGenerator.generate(options.mailgenContent);
 
   try {
@@ -63,28 +54,27 @@ const sendEmail = async (options) => {
     });
 
     console.log("=================================");
-    console.log("✅ EMAIL SENT SUCCESSFULLY");
+    console.log("✅ MAIL SENT SUCCESSFULLY");
     console.log("To:", options.email);
     console.log("Message ID:", info.messageId);
-    console.log("Response:", info.response);
     console.log("=================================");
 
     return info;
   } catch (error) {
     console.log("=================================");
-    console.log("❌ EMAIL SENDING FAILED");
-    console.log("Error code:", error.code);
-    console.log("Error message:", error.message);
-    console.log("Full error:", error);
+    console.log("❌ SMTP CONNECTION / MAIL ERROR");
+    console.log("Error Code:", error.code);
+    console.log("Error Message:", error.message);
+    console.log("Full Error:", error);
     console.log("=================================");
 
     throw error;
   }
 };
 
-// ==========================================
-// EMAIL VERIFICATION
-// ==========================================
+// ========================================
+// Email Verification Content
+// ========================================
 
 const emailVerificationMailgenContent = (username, verificationUrl) => {
   return {
@@ -110,9 +100,9 @@ const emailVerificationMailgenContent = (username, verificationUrl) => {
   };
 };
 
-// ==========================================
-// FORGOT PASSWORD
-// ==========================================
+// ========================================
+// Forgot Password Content
+// ========================================
 
 const forgotPasswordMailgenContent = (username, passwordResetUrl) => {
   return {
@@ -138,9 +128,9 @@ const forgotPasswordMailgenContent = (username, passwordResetUrl) => {
   };
 };
 
-// ==========================================
-// EXPORT
-// ==========================================
+// ========================================
+// Exports
+// ========================================
 
 export {
   sendEmail,
