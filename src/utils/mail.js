@@ -1,5 +1,7 @@
 import Mailgen from "mailgen";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendEmail = async (options) => {
   const mailGenerator = new Mailgen({
@@ -10,29 +12,15 @@ const sendEmail = async (options) => {
     },
   });
 
-  const emailTextual = mailGenerator.generatePlaintext(options.mailgenContent);
   const emailHtml = mailGenerator.generate(options.mailgenContent);
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.GMAIL_SMTP_HOST,
-    port: Number(process.env.GMAIL_SMTP_PORT),
-    secure: false, // port 587 ke liye false hona chahiye (TLS automatically use hota hai)
-    auth: {
-      user: process.env.GMAIL_SMTP_USER,
-      pass: process.env.GMAIL_SMTP_PASS,
-    },
-  });
-
-  const mail = {
-    from: `"Project Camp" <${process.env.GMAIL_SMTP_USER}>`,
-    to: options.email,
-    subject: options.subject,
-    text: emailTextual,
-    html: emailHtml,
-  };
-
   try {
-    const info = await transporter.sendMail(mail);
+    await resend.emails.send({
+      from: "onboarding@resend.dev",
+      to: options.email,
+      subject: options.subject,
+      html: emailHtml,
+    });
     console.log("✅ Mail Sent Successfully");
   } catch (error) {
     console.log("❌ MAIL ERROR");
