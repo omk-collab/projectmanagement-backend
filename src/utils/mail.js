@@ -1,87 +1,98 @@
 import Mailgen from "mailgen";
-import nodemailer from "nodemailer";
-
-// ========================================
-// Gmail SMTP Transporter
-// ========================================
-
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-
-  // Gmail SMTP port 587 uses STARTTLS
-  secure: false,
-
-  // IMPORTANT:
-  // Force IPv4 because Render was trying IPv6
-  // and giving ENETUNREACH error.
-  family: 4,
-
-  auth: {
-    user: process.env.GMAIL_SMTP_USER,
-    pass: process.env.GMAIL_SMTP_PASS,
-  },
-});
-
-// ========================================
-// Send Email
-// ========================================
 
 const sendEmail = async (options) => {
   const mailGenerator = new Mailgen({
     theme: "default",
-
     product: {
       name: "Task Manager",
       link: "https://projectmanagement-omk.vercel.app",
     },
   });
 
-  // Generate HTML email
-  const emailHtml = mailGenerator.generate(options.mailgenContent);
+  const emailHtml = mailGenerator.generate(
+    options.mailgenContent
+  );
 
   try {
     console.log("=================================");
-    console.log("📧 TRYING TO SEND EMAIL");
-    console.log("From:", process.env.GMAIL_SMTP_USER);
+    console.log("📧 SENDING EMAIL USING BREVO API");
+    console.log("From:", process.env.BREVO_SENDER_EMAIL);
     console.log("To:", options.email);
 
-    const info = await transporter.sendMail({
-      from: `"Task Manager" <${process.env.GMAIL_SMTP_USER}>`,
-      to: options.email,
-      subject: options.subject,
-      html: emailHtml,
-    });
+    const response = await fetch(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        method: "POST",
+
+        headers: {
+          accept: "application/json",
+          "api-key": process.env.BREVO_API_KEY,
+          "content-type": "application/json",
+        },
+
+        body: JSON.stringify({
+          sender: {
+            name: process.env.BREVO_SENDER_NAME,
+            email: process.env.BREVO_SENDER_EMAIL,
+          },
+
+          to: [
+            {
+              email: options.email,
+            },
+          ],
+
+          subject: options.subject,
+
+          htmlContent: emailHtml,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.log("=================================");
+      console.log("❌ BREVO EMAIL ERROR");
+      console.log("Status:", response.status);
+      console.log("Response:", data);
+      console.log("=================================");
+
+      throw new Error(
+        data.message || "Brevo email sending failed"
+      );
+    }
 
     console.log("=================================");
-    console.log("✅ MAIL SENT SUCCESSFULLY");
+    console.log("✅ EMAIL SENT SUCCESSFULLY");
     console.log("To:", options.email);
-    console.log("Message ID:", info.messageId);
+    console.log("Message ID:", data.messageId);
     console.log("=================================");
 
-    return info;
+    return data;
+
   } catch (error) {
+
     console.log("=================================");
-    console.log("❌ SMTP CONNECTION / MAIL ERROR");
-    console.log("Error Code:", error.code);
-    console.log("Error Message:", error.message);
-    console.log("Full Error:", error);
+    console.log("❌ EMAIL SENDING FAILED");
+    console.log("Error:", error.message);
     console.log("=================================");
 
     throw error;
   }
 };
 
-// ========================================
-// Email Verification Content
-// ========================================
 
-const emailVerificationMailgenContent = (username, verificationUrl) => {
+const emailVerificationMailgenContent = (
+  username,
+  verificationUrl
+) => {
   return {
     body: {
       name: username,
 
-      intro: "Welcome to Task Manager! We're excited to have you on board.",
+      intro:
+        "Welcome to Task Manager! We're excited to have you on board.",
 
       action: {
         instructions:
@@ -100,11 +111,11 @@ const emailVerificationMailgenContent = (username, verificationUrl) => {
   };
 };
 
-// ========================================
-// Forgot Password Content
-// ========================================
 
-const forgotPasswordMailgenContent = (username, passwordResetUrl) => {
+const forgotPasswordMailgenContent = (
+  username,
+  passwordResetUrl
+) => {
   return {
     body: {
       name: username,
@@ -113,7 +124,8 @@ const forgotPasswordMailgenContent = (username, passwordResetUrl) => {
         "We received a request to reset the password for your Task Manager account.",
 
       action: {
-        instructions: "Click the button below to reset your password.",
+        instructions:
+          "Click the button below to reset your password.",
 
         button: {
           color: "#22BC66",
@@ -128,9 +140,6 @@ const forgotPasswordMailgenContent = (username, passwordResetUrl) => {
   };
 };
 
-// ========================================
-// Exports
-// ========================================
 
 export {
   sendEmail,
