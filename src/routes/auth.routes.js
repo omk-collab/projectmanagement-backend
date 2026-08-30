@@ -24,6 +24,7 @@ import {
   userLoginValidator,
   userForgotPasswordValidator,
   userChangeCurrentPasswordValidator,
+  userResetPasswordValidator, // naya add kar
 } from "../validators/index.js";
 
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -43,10 +44,10 @@ router
   .route("/forgot-password")
   .post(userForgotPasswordValidator(), validate, forgotPasswordRequest);
 
+
 router
   .route("/reset-password/:resetToken")
-  .post(userForgotPasswordValidator(), validate, resetForgotPassword);
-
+  .post(userResetPasswordValidator(), validate, resetForgotPassword);
 // Secure routes
 router.route("/logout").post(verifyJWT, logoutUser);
 
