@@ -1,32 +1,14 @@
 import rateLimit from "express-rate-limit";
 
 // ========================================
-// General API Rate Limiter
-// ========================================
-
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-
-  max: 200, // Maximum 200 requests
-
-  standardHeaders: true,
-  legacyHeaders: false,
-
-  message: {
-    success: false,
-    message: "Too many requests. Please try again later.",
-  },
-});
-
-// ========================================
 // Authentication Rate Limiter
-// Login / Register / Google Login
+// Login / Register
 // ========================================
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
 
-  max: 10,
+  max: 30, // 30 attempts per IP
 
   standardHeaders: true,
   legacyHeaders: false,
@@ -75,4 +57,4 @@ const passwordResetLimiter = rateLimit({
   },
 });
 
-export { generalLimiter, authLimiter, emailLimiter, passwordResetLimiter };
+export { authLimiter, emailLimiter, passwordResetLimiter };
