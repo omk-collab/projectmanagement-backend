@@ -1,4 +1,5 @@
 import { Router } from "express";
+
 import {
   registerUser,
   login,
@@ -12,9 +13,8 @@ import {
   resendEmailverification,
   updateAvatar,
   googleLogin,
+  updateAccountDetails,
 } from "../controllers/auth.controllers.js";
-
-import { updateAccountDetails } from "../controllers/auth.controllers.js";
 
 import { upload } from "../middlewares/multer.middleware.js";
 
@@ -25,37 +25,75 @@ import {
   userLoginValidator,
   userForgotPasswordValidator,
   userChangeCurrentPasswordValidator,
-  userResetPasswordValidator, // naya add kar
+  userResetPasswordValidator,
 } from "../validators/index.js";
 
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
+// ========================================
+// Rate Limiters
+// ========================================
+
+import {
+  authLimiter,
+  emailLimiter,
+  passwordResetLimiter,
+} from "../middlewares/rate-limit.middleware.js";
+
 const router = Router();
 
-// Unsecured routes
-router.route("/register").post(userRegisterValidator(), validate, registerUser);
+// ========================================
+// PUBLIC / UNSECURED ROUTES
+// ========================================
 
-router.route("/login").post(userLoginValidator(), validate, login);
+// Register
+router
+  .route("/register")
+  .post(authLimiter, userRegisterValidator(), validate, registerUser);
 
-router.route("/google").post(googleLogin);
+// Login
+router.route("/login").post(authLimiter, userLoginValidator(), validate, login);
 
+// Google Login
+router.route("/google").post(authLimiter, googleLogin);
+
+// Verify Email
 router.route("/verify-email/:verificationToken").get(verifyEmail);
 
-router.route("/refresh-token").post(refreshAccessToken);
+// Refresh Token
+router.route("/refresh-token").post(authLimiter, refreshAccessToken);
 
+// Forgot Password
 router
   .route("/forgot-password")
-  .post(userForgotPasswordValidator(), validate, forgotPasswordRequest);
+  .post(
+    emailLimiter,
+    userForgotPasswordValidator(),
+    validate,
+    forgotPasswordRequest,
+  );
 
-
+// Reset Password
 router
   .route("/reset-password/:resetToken")
-  .post(userResetPasswordValidator(), validate, resetForgotPassword);
-// Secure routes
+  .post(
+    passwordResetLimiter,
+    userResetPasswordValidator(),
+    validate,
+    resetForgotPassword,
+  );
+
+// ========================================
+// SECURE ROUTES
+// ========================================
+
+// Logout
 router.route("/logout").post(verifyJWT, logoutUser);
 
+// Current User
 router.route("/current-user").post(verifyJWT, getCurrentUser);
 
+// Change Password
 router
   .route("/change-password")
   .post(
@@ -65,12 +103,15 @@ router
     changeCurrentPassword,
   );
 
+// Resend Email Verification
 router
   .route("/resend-email-verification")
-  .post(verifyJWT, resendEmailverification);
+  .post(verifyJWT, emailLimiter, resendEmailverification);
 
+// Update Account
 router.patch("/update-account", verifyJWT, updateAccountDetails);
 
+// Update Avatar
 router
   .route("/update-avatar")
   .post(verifyJWT, upload.single("avatar"), updateAvatar);
