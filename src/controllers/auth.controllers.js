@@ -65,15 +65,14 @@ const registerUser = asyncHandler(async(req,res)=>{
     validateBeforeSave: false,
   });
 
- await sendEmail({
-   email: newUser.email,
-   subject: "Please verify your email",
-   mailgenContent: emailVerificationMailgenContent(
-     newUser.username,
-     `${req.protocol}://${req.get("host")}/api/v1/auth/verify-email/${unHashedToken}`,
-   ),
- });
-
+sendEmail({
+  email: newUser.email,
+  subject: "Please verify your email",
+  mailgenContent: emailVerificationMailgenContent(
+    newUser.username,
+    `${req.protocol}://${req.get("host")}/api/v1/auth/verify-email/${unHashedToken}`,
+  ),
+}).catch((err) => console.error("Failed to send verification email:", err));
     const createdUser = await User.findById(newUser._id).select(
       "-password -refreshToken -emailVerificationToken -emailVerificationExpiry",
     );
