@@ -12,7 +12,7 @@ import projectRouter from "./routes/project.routes.js";
 import { globalErrorHandler } from "./middlewares/global-error.middleware.js";
 
 import {
-  generalLimiter,
+ 
   authLimiter,
   emailLimiter,
   passwordResetLimiter,
@@ -57,7 +57,7 @@ app.use(
 // General Rate Limiter
 // ========================================
 
-app.use("/api/v1", generalLimiter);
+
 
 // ========================================
 // Routes
