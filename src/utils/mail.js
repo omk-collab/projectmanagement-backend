@@ -1,24 +1,41 @@
 import Mailgen from "mailgen";
 import nodemailer from "nodemailer";
 
-// ===============================
-// Gmail SMTP Transporter
-// ===============================
+// ==========================================
+// GMAIL SMTP CONFIGURATION
+// ==========================================
 
 const transporter = nodemailer.createTransport({
-  host: process.env.GMAIL_SMTP_HOST,
-  port: Number(process.env.GMAIL_SMTP_PORT),
-  secure: false, // Port 587 => false
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
 
   auth: {
     user: process.env.GMAIL_SMTP_USER,
     pass: process.env.GMAIL_SMTP_PASS,
   },
+
+  tls: {
+    rejectUnauthorized: false,
+  },
 });
 
-// ===============================
-// Send Email
-// ===============================
+// ==========================================
+// VERIFY SMTP CONNECTION
+// ==========================================
+
+transporter.verify((error, success) => {
+  if (error) {
+    console.log("❌ SMTP CONNECTION FAILED");
+    console.log(error);
+  } else {
+    console.log("✅ SMTP SERVER READY");
+  }
+});
+
+// ==========================================
+// SEND EMAIL
+// ==========================================
 
 const sendEmail = async (options) => {
   const mailGenerator = new Mailgen({
@@ -30,40 +47,44 @@ const sendEmail = async (options) => {
     },
   });
 
-  // Generate HTML email
   const emailHtml = mailGenerator.generate(options.mailgenContent);
 
   try {
+    console.log("=================================");
+    console.log("📧 TRYING TO SEND EMAIL");
+    console.log("From:", process.env.GMAIL_SMTP_USER);
+    console.log("To:", options.email);
+
     const info = await transporter.sendMail({
       from: `"Task Manager" <${process.env.GMAIL_SMTP_USER}>`,
-
       to: options.email,
-
       subject: options.subject,
-
       html: emailHtml,
     });
 
     console.log("=================================");
-    console.log("✅ MAIL SENT SUCCESSFULLY");
+    console.log("✅ EMAIL SENT SUCCESSFULLY");
     console.log("To:", options.email);
     console.log("Message ID:", info.messageId);
+    console.log("Response:", info.response);
     console.log("=================================");
 
     return info;
   } catch (error) {
     console.log("=================================");
-    console.log("❌ MAIL ERROR");
-    console.log(error);
+    console.log("❌ EMAIL SENDING FAILED");
+    console.log("Error code:", error.code);
+    console.log("Error message:", error.message);
+    console.log("Full error:", error);
     console.log("=================================");
 
     throw error;
   }
 };
 
-// ===============================
-// Email Verification Content
-// ===============================
+// ==========================================
+// EMAIL VERIFICATION
+// ==========================================
 
 const emailVerificationMailgenContent = (username, verificationUrl) => {
   return {
@@ -78,9 +99,7 @@ const emailVerificationMailgenContent = (username, verificationUrl) => {
 
         button: {
           color: "#22BC66",
-
           text: "Verify Your Email",
-
           link: verificationUrl,
         },
       },
@@ -91,9 +110,9 @@ const emailVerificationMailgenContent = (username, verificationUrl) => {
   };
 };
 
-// ===============================
-// Forgot Password Content
-// ===============================
+// ==========================================
+// FORGOT PASSWORD
+// ==========================================
 
 const forgotPasswordMailgenContent = (username, passwordResetUrl) => {
   return {
@@ -108,9 +127,7 @@ const forgotPasswordMailgenContent = (username, passwordResetUrl) => {
 
         button: {
           color: "#22BC66",
-
           text: "Reset Password",
-
           link: passwordResetUrl,
         },
       },
@@ -121,9 +138,9 @@ const forgotPasswordMailgenContent = (username, passwordResetUrl) => {
   };
 };
 
-// ===============================
-// Exports
-// ===============================
+// ==========================================
+// EXPORT
+// ==========================================
 
 export {
   sendEmail,
