@@ -55,7 +55,7 @@ router
 router.route("/login").post(authLimiter, userLoginValidator(), validate, login);
 
 // Google Login
-router.route("/google").post(authLimiter, googleLogin);
+router.route("/google").post(googleLogin);
 
 // Verify Email
 router.route("/verify-email/:verificationToken").get(verifyEmail);
