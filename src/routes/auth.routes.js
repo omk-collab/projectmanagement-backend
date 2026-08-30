@@ -11,6 +11,7 @@ import {
   changeCurrentPassword,
   resendEmailverification,
   updateAvatar,
+  googleLogin,
 } from "../controllers/auth.controllers.js";
 
 import { updateAccountDetails } from "../controllers/auth.controllers.js";
@@ -35,6 +36,8 @@ const router = Router();
 router.route("/register").post(userRegisterValidator(), validate, registerUser);
 
 router.route("/login").post(userLoginValidator(), validate, login);
+
+router.route("/google").post(googleLogin);
 
 router.route("/verify-email/:verificationToken").get(verifyEmail);
 

@@ -7,6 +7,9 @@ import { emailVerificationMailgenContent, sendEmail } from "../utils/mail.js";
 import jwt from "jsonwebtoken"
 import crypto from "crypto";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { OAuth2Client } from "google-auth-library";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -150,6 +153,71 @@ const login = asyncHandler(async (req, res) => {
           refreshToken,
         },
         "User logged in successfully",
+      ),
+    );
+});
+
+const googleLogin = asyncHandler(async (req, res) => {
+  const { credential } = req.body;
+
+  if (!credential) {
+    throw new ApiError(400, "Google credential is missing");
+  }
+
+  const ticket = await googleClient.verifyIdToken({
+    idToken: credential,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+
+  const payload = ticket.getPayload();
+  const { email, name, sub } = payload;
+
+  let user = await User.findOne({ email });
+
+  if (!user) {
+    // naya user banao, unique username generate karke
+    let baseUsername = email
+      .split("@")[0]
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    let username = baseUsername;
+    let counter = 1;
+    while (await User.findOne({ username })) {
+      username = `${baseUsername}${counter}`;
+      counter++;
+    }
+
+    user = await User.create({
+      email,
+      username,
+      fullName: name,
+      authProvider: "google",
+      isEmailVerified: true, // Google ne already verify kiya hai
+    });
+  }
+
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+    user._id,
+  );
+
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken -emailVerificationToken -emailVerificationExpiry",
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        { user: loggedInUser, accessToken, refreshToken },
+        "Logged in with Google successfully",
       ),
     );
 });
@@ -471,4 +539,5 @@ export {
   resetForgotPassword,
   updateAccountDetails,
   updateAvatar,
+  googleLogin,
 };
